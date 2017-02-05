@@ -624,13 +624,10 @@ has the following definition::
 
     class TLSWrappedBuffer(metaclass=ABCMeta):
         @abstractmethod
-        def read(self, amt: int = None) -> bytes:
+        def read(self, amt: int) -> bytes:
             """
             Read up to ``amt`` bytes of data from the input buffer and return
-            the result as a ``bytes`` instance. If ``amt`` is ``None``, will
-            attempt to read until either EOF is reached or until further
-            attempts to read would raise either ``WantReadError`` or
-            ``WantWriteError``.
+            the result as a ``bytes`` instance.
 
             Once EOF is reached, all further calls to this method return the
             empty byte string ``b''``.
@@ -651,14 +648,11 @@ has the following definition::
             """
 
         @abstractmethod
-        def readinto(self, buffer: Any, amt: int = None) -> int:
+        def readinto(self, buffer: Any, amt: int) -> int:
             """
             Read up to ``amt`` bytes of data from the input buffer into
             ``buffer``, which must be an object that implements the buffer
-            protocol. Returns the number of bytes read. If ``amt`` is ``None``,
-            will attempt to read until either EOF is reached or until further
-            attempts to read would raise either ``WantReadError`` or
-            ``WantWriteError``, or until the buffer is full.
+            protocol. Returns the number of bytes read.
 
             Once EOF is reached, all further calls to this method return the
             empty byte string ``b''``.
