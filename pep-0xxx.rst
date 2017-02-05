@@ -442,6 +442,14 @@ functionality missing for server-side use. This would allow SecureTransport
 implementations to simply not define a concrete subclass of ``ServerContext``
 to signal their lack of support.
 
+One of the other major differences to the current ``ssl`` module is that a
+number of flags and options have been removed. Most of these are self-evident,
+but it is worth noting that ``auto_handshake`` has been removed from
+``wrap_socket``. This was removed because it fundamentally represents an odd
+design wart that saves very minimal effort at the cost of a complexity increase
+both for users and implementers. This PEP requires that all users call
+``do_handshake`` explicitly after connecting.
+
 As much as possible implementers should aim to make these classes immutable:
 that is, they should prefer not to allow users to mutate their internal state
 directly, instead preferring to create new contexts from new TLSConfiguration
@@ -472,8 +480,7 @@ The ``Context`` abstract base class has the following class definition::
         @abstractmethod
         def wrap_socket(self,
                         socket: socket.socket,
-                        server_hostname: Optional[str],
-                        auto_handshake: bool = True) -> TLSWrappedSocket:
+                        server_hostname: Optional[str]) -> TLSWrappedSocket:
             """
             Wrap an existing Python socket object ``socket`` and return a
             ``TLSWrappedSocket`` object. ``socket`` must be a ``SOCK_STREAM``
@@ -490,14 +497,6 @@ The ``Context`` abstract base class has the following class definition::
             not desired, then pass ``None`` for this parameter. This parameter
             has no default value because opting-out of hostname validation is
             dangerous, and should not be the default behaviour.
-
-            The parameter ``auto_handshake`` specifies whether to do the SSL
-            handshake automatically after doing a ``socket.connect()``, or
-            whether the application program will call it explicitly, by
-            invoking the ``TLSWrappedSocket.do_handshake()`` method. Calling
-            ``TLSWrappedSocket.do_handshake()`` explicitly gives the program
-            control over the blocking behavior of the socket I/O involved in
-            the handshake.
             """
 
         @abstractmethod
@@ -519,8 +518,7 @@ The ``Context`` abstract base class has the following class definition::
 
     class ServerContext(_BaseContext):
         @abstractmethod
-        def wrap_socket(self, socket: socket.socket,
-                        auto_handshake: bool = True) -> TLSWrappedSocket:
+        def wrap_socket(self, socket: socket.socket) -> TLSWrappedSocket:
             """
             Wrap an existing Python socket object ``socket`` and return a
             ``TLSWrappedSocket`` object. ``socket`` must be a ``SOCK_STREAM``
@@ -528,14 +526,6 @@ The ``Context`` abstract base class has the following class definition::
 
             The returned SSL socket is tied to the context, its settings and
             certificates.
-
-            The parameter ``auto_handshake`` specifies whether to do the SSL
-            handshake automatically after doing a ``socket.accept()``, or
-            whether the application program will call it explicitly, by
-            invoking the ``TLSWrappedSocket.do_handshake()`` method. Calling
-            ``TLSWrappedSocket.do_handshake()`` explicitly gives the program
-            control over the blocking behavior of the socket I/O involved in
-            the handshake.
             """
 
         @abstractmethod
@@ -565,7 +555,9 @@ has the following definition::
         def do_handshake(self) -> None:
             """
             Performs the TLS handshake. Also performs certificate validation
-            and hostname verification.
+            and hostname verification. This must be called after the socket has
+            connected (either via ``connect`` or ``accept``), before any other
+            operation is performed on the socket.
             """
 
         @abstractmethod
