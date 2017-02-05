@@ -635,6 +635,9 @@ has the following definition::
             Once EOF is reached, all further calls to this method return the
             empty byte string ``b''``.
 
+            May read "short": that is, fewer bytes may be returned than were
+            requested.
+
             Raise ``WantReadError`` or ``WantWriteError`` if there is
             insufficient data in either the input or output buffer and the
             operation would have caused data to be written or read.
@@ -664,6 +667,9 @@ has the following definition::
             insufficient data in either the input or output buffer and the
             operation would have caused data to be written or read.
 
+            May read "short": that is, fewer bytes may be read than were
+            requested.
+
             May raise ``RaggedEOF`` if the connection has been closed without a
             graceful TLS shutdown. Whether this is an exception that should be
             ignored or not is up to the specific application.
@@ -681,7 +687,14 @@ has the following definition::
 
             Raise ``WantReadError`` or ``WantWriteError`` if there is
             insufficient data in either the input or output buffer and the
-            operation would have caused data to be written or read.
+            operation would have caused data to be written or read. In either
+            case, users should endeavour to resolve that situation and then
+            re-call this method. When re-calling this method users *should*
+            re-use the exact same ``buf`` object, as some backends require that
+            the exact same buffer be used.
+
+            This operation may write "short": that is, fewer bytes may be
+            written than were in the buffer.
 
             As at any time a re-negotiation is possible, a call to ``write()``
             can also cause read operations.
@@ -1005,6 +1018,10 @@ The definitions of the errors are below::
         buffer-only I/O is used. This error signals that the requested
         operation cannot complete until more data is written to the network,
         or until the output buffer is drained.
+
+        This error is should only be raised when it is completely impossible
+        to write any data. If a partial write is achievable then this should
+        not be raised.
         """
 
     class WantReadError(TLSError):
@@ -1013,6 +1030,10 @@ The definitions of the errors are below::
         buffer-only I/O is used. This error signals that the requested
         operation cannot complete until more data is read from the network, or
         until more data is available in the input buffer.
+
+        This error should only be raised when it is completely impossible to
+        write any data. If a partial write is achievable then this should not
+        be raised.
         """
 
     class RaggedEOF(TLSError):
