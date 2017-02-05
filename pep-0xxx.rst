@@ -487,7 +487,12 @@ The ``Context`` abstract base class has the following class definition::
             socket: all other socket types are unsupported.
 
             The returned SSL socket is tied to the context, its settings and
-            certificates.
+            certificates. The socket object originally passed to this method
+            should not be used again: attempting to use it in any way will lead
+            to undefined behaviour, especially across different TLS
+            implementations. To get the original socket object back once it has
+            been wrapped in TLS, see the ``unwrap`` method of the
+            TLSWrappedSocket.
 
             The parameter ``server_hostname`` specifies the hostname of the
             service which we are connecting to. This allows a single server to
@@ -525,7 +530,12 @@ The ``Context`` abstract base class has the following class definition::
             socket: all other socket types are unsupported.
 
             The returned SSL socket is tied to the context, its settings and
-            certificates.
+            certificates. The socket object originally passed to this method
+            should not be used again: attempting to use it in any way will lead
+            to undefined behaviour, especially across different TLS
+            implementations. To get the original socket object back once it has
+            been wrapped in TLS, see the ``unwrap`` method of the
+            TLSWrappedSocket.
             """
 
         @abstractmethod
