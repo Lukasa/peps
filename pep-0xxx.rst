@@ -1059,7 +1059,15 @@ Enum members can be mapped to OpenSSL cipher names::
     'ECDHE-RSA-AES128-GCM-SHA256'
 
 
-.. TODO: Figure out mappings for SChannel and SecureTransport
+For SecureTransport, these enum members directly refer to the values of the
+cipher suite constants. For example, SecureTransport defines the cipher suite
+enum member ``TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`` as having the value
+``0xC02C``. Not coincidentally, that is identical to its value in the above
+enum. This makes mapping between SecureTransport and the above enum very easy
+indeed.
+
+
+.. TODO: Figure out mappings for SChannel
 
 
 Protocol Negotiation
