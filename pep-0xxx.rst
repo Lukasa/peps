@@ -505,16 +505,17 @@ The ``Context`` abstract base class has the following class definition::
             """
 
         @abstractmethod
-        def wrap_buffers(self, incoming: Any, outgoing: Any,
-                         server_hostname: Optional[str]) -> TLSWrappedBuffer:
+        def wrap_buffers(self, server_hostname: Optional[str]) -> TLSWrappedBuffer:
             """
-            Wrap a pair of buffer objects (``incoming`` and ``outgoing``) to
-            create an in-memory stream for TLS. The SSL routines will read data
-            from ``incoming`` and decrypt it, and write encrypted data to
-            ``outgoing``.
+            Create an in-memory stream for TLS, using memory buffers to store
+            incoming and outgoing ciphertext. The TLS routines will read
+            received TLS data from one buffer, and write TLS data that needs to
+            be emitted to another buffer.
 
-            The buffer objects must be either file objects or objects that
-            implement the buffer protocol.
+            The implementation details of how this buffering works are up to
+            the individual TLS implementation. This allows TLS libraries that
+            have their own specialised support to continue to do so, while
+            allowing those without to use whatever Python objects they see fit.
 
             The ``server_hostname`` parameter has the same meaning as in
             ``wrap_socket``.
@@ -539,12 +540,17 @@ The ``Context`` abstract base class has the following class definition::
             """
 
         @abstractmethod
-        def wrap_buffers(self, incoming: Any, outgoing: Any) -> TLSWrappedBuffer:
+        def wrap_buffers(self) -> TLSWrappedBuffer:
             """
-            Wrap a pair of buffer objects (``incoming`` and ``outgoing``) to
-            create an in-memory stream for TLS. The SSL routines will read data
-            from ``incoming`` and decrypt it, and write encrypted data to
-            ``outgoing``.
+            Create an in-memory stream for TLS, using memory buffers to store
+            incoming and outgoing ciphertext. The TLS routines will read
+            received TLS data from one buffer, and write TLS data that needs to
+            be emitted to another buffer.
+
+            The implementation details of how this buffering works are up to
+            the individual TLS implementation. This allows TLS libraries that
+            have their own specialised support to continue to do so, while
+            allowing those without to use whatever Python objects they see fit.
 
             The buffer objects must be either file objects or objects that
             implement the buffer protocol.
@@ -752,6 +758,29 @@ has the following definition::
             Performs a clean TLS shut down. This should generally be used
             whenever possible to signal to the remote peer that the content is
             finished.
+            """
+
+        @abstractmethod
+        def receive_from_network(self, data):
+            """
+            Receives some TLS data from the network and stores it in an
+            internal buffer.
+            """
+
+        @abstractmethod
+        def peek_outgoing(self, amt):
+            """
+            Returns the next ``amt`` bytes of data that should be written to
+            the network from the outgoing data buffer, without removing it from
+            the internal buffer.
+            """
+
+        @abstractmethod
+        def consume_outgoing(self, amt):
+            """
+            Discard the next ``amt`` bytes from the outgoing data buffer. This
+            should be used when ``amt`` bytes have been sent on the network, to
+            signal that the data no longer needs to be buffered.
             """
 
 
