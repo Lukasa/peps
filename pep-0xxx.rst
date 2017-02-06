@@ -292,7 +292,7 @@ The ``TLSConfiguration`` object would be defined by the following code::
             subsequent certificates will be offered as intermediate additional
             certificates.
 
-        :param ciphers Tuple[CipherSuite]:
+        :param ciphers Tuple[Union[CipherSuite, int]]:
             The available ciphers for TLS connections created with this
             configuration, in priority order.
 
@@ -349,7 +349,7 @@ The ``TLSConfiguration`` object would be defined by the following code::
 
         def __new__(cls, validate_certificates: Optional[bool] = None,
                          certificate_chain: Optional[Tuple[Tuple[Certificate], PrivateKey]] = None,
-                         ciphers: Optional[Tuple[CipherSuite]] = None,
+                         ciphers: Optional[Tuple[Union[CipherSuite, int]]] = None,
                          inner_protocols: Optional[Tuple[Union[NextProtocol, bytes]]] = None,
                          lowest_supported_version: Optional[TLSVersion] = None,
                          highest_supported_version: Optional[TLSVersion] = None,
@@ -571,11 +571,13 @@ has the following definition::
             """
 
         @abstractmethod
-        def cipher(self) -> Optional[CipherSuite]:
+        def cipher(self) -> Optional[Union[CipherSuite, int]]:
             """
             Returns the CipherSuite entry for the cipher that has been
             negotiated on the connection. If no connection has been negotiated,
-            returns ``None``.
+            returns ``None``. If the cipher negotiated is not defined in
+            CipherSuite, returns the 16-bit integer representing that cipher
+            directly.
             """
 
         @abstractmethod
@@ -704,11 +706,13 @@ has the following definition::
             """
 
         @abstractmethod
-        def cipher(self) -> Optional[CipherSuite]:
+        def cipher(self) -> Optional[Union[CipherSuite, int]]:
             """
             Returns the CipherSuite entry for the cipher that has been
             negotiated on the connection. If no connection has been negotiated,
-            returns ``None``.
+            returns ``None``. If the cipher negotiated is not defined in
+            CipherSuite, returns the 16-bit integer representing that cipher
+            directly.
             """
 
         @abstractmethod
@@ -921,6 +925,11 @@ does not contain ciphers with:
 five additional cipher suites from the TLS 1.3 draft (draft-ietf-tls-tls13-18)
 are included, too. TLS 1.3 does not share any cipher suites with TLS 1.2 and
 earlier. The resulting enum will contain roughly 110 suites.
+
+Because of these limitations, and because the enum doesn't contain every
+defined cipher, and also to allow for forward-looking applications, all parts
+of this API that accept ``CipherSuite`` objects will also accept raw 16-bit
+integers directly.
 
 Rather than populate this enum by hand, we have a `TLS enum script`_ that
 builds it from Christian Heimes' `tlsdb JSON file`_ (warning:
