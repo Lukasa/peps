@@ -1503,7 +1503,8 @@ Credits
 =======
 
 This document has received extensive review from a number of individuals in the
-community who have substantially helped shape it. Review was provided by:
+community who have substantially helped shape it. Detailed review was provided
+by:
 
 * Alex Chan
 * Alex Gaynor
@@ -1521,6 +1522,8 @@ community who have substantially helped shape it. Review was provided by:
 * Steven Fackler
 * Wes Turner
 * Will Bond
+
+Further review was provided by the Security-SIG and python-ideas mailing lists.
 
 
 Copyright
