@@ -3,6 +3,7 @@ Title: TLS Abstract Base Classes
 Version: $Revision$
 Last-Modified: $Date$
 Author: Cory Benfield <cory@lukasa.co.uk>
+    Christian Heimes <christian@python.org>
 Status: Draft
 Type: Standards Track
 Content-Type: text/x-rst
