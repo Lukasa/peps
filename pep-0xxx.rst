@@ -1499,8 +1499,35 @@ configuration option for the Python community. TLS is not a static target, and
 as TLS evolves so must this API.
 
 
-References
-==========
+Credits
+=======
+
+This document has received extensive review from a number of individuals in the
+community who have substantially helped shape it. Review was provided by:
+
+* Alex Chan
+* Alex Gaynor
+* Antoine Pitrou
+* Ashwini Oruganti
+* Donald Stufft
+* Ethan Furman
+* Glyph
+* Hynek Schlawack
+* Jim J Jewett
+* Nathaniel J. Smith
+* Nick Coghlan
+* Paul Kehrer
+* Steve Dower
+* Steven Fackler
+* Wes Turner
+* Will Bond
+
+
+Copyright
+=========
+
+This document has been placed in the public domain.
+
 
 .. _ssl module: https://docs.python.org/3/library/ssl.html
 .. _OpenSSL Library: https://www.openssl.org/
@@ -1517,14 +1544,6 @@ References
 .. _an email sent to the Security-SIG by Christian Heimes: https://mail.python.org/pipermail/security-sig/2017-January/000213.html
 .. _s2n: https://github.com/awslabs/s2n
 .. _working to add it: https://github.com/awslabs/s2n/issues/358
-
-
-Copyright
-=========
-
-This document has been placed in the public domain.
-
-
 
 ..
    Local Variables:
