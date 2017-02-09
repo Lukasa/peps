@@ -128,19 +128,19 @@ by these abstract base classes wherever possible. There are three goals here:
 The proposed interface is laid out below.
 
 
-Abstract Base Classes
----------------------
+Interfaces
+----------
 
 There are several interfaces that require standardisation. Those interfaces
 are:
 
 1. Configuring TLS, currently implemented by the `SSLContext`_ class in the
    ``ssl`` module.
-2. Wrapping a socket object, currently implemented by the `SSLSocket`_ class
-   in the ``ssl`` module.
-3. Providing an in-memory buffer for doing in-memory encryption or decryption
+2. Providing an in-memory buffer for doing in-memory encryption or decryption
    with no actual I/O (necessary for asynchronous I/O models), currently
    implemented by the `SSLObject`_ class in the ``ssl`` module.
+3. Wrapping a socket object, currently implemented by the `SSLSocket`_ class
+   in the ``ssl`` module.
 4. Applying TLS configuration to the wrapping objects in (2) and (3). Currently
    this is also implemented by the `SSLContext`_ class in the ``ssl`` module.
 5. Specifying TLS cipher suites. There is currently no code for doing this in
@@ -156,9 +156,25 @@ are:
     presented by a remote peer.
 11. Finding a way to get hold of these interfaces at run time.
 
-While it is technically possible to define (2) in terms of (3), for the sake of
-simplicity it is easier to define these as two separate ABCs. Implementations
-are of course free to implement the concrete subclasses however they see fit.
+For the sake of simplicitly, this PEP proposes to take a unified approach to
+(2) and (3) (that is, buffers and sockets). The Python socket API is a
+sizeable one, and implementing a wrapped socket that has the same behaviour as
+a regular Python socket is a subtle and tricky thing to do. However, it is
+entirely possible to implement a *generic* wrapped socket in terms of wrapped
+buffers: that is, it is possible to write a wrapped socket (3) that will work
+for any implementation that provides (2). For this reason, this PEP proposes to
+provide an ABC for wrapped buffers (2) but a concrete class for wrapped sockets
+(3).
+
+This decision has the effect of making it impossible to bind a small number of
+TLS libraries to this ABC, because those TLS libraries *cannot* provide a
+wrapped buffer implementation. The most notable of these at this time appears
+to be Amazon's `s2n`_, which currently does not provide an I/O abstraction
+layer. However, even this library consider this a missing feature and are
+`working to add it`_. For this reason, it is safe to assume that a concrete
+implementation of (3) in terms of (2) will be a substantial effort-saving
+device and a great tool for correctness. Therefore, this PEP proposes doing
+just that.
 
 Obviously, (5) doesn't require an abstract base class: instead, it requires a
 richer API for configuring supported cipher suites that can be easily updated
@@ -477,7 +493,6 @@ The ``Context`` abstract base class has the following class definition::
 
 
     class ClientContext(_BaseContext):
-        @abstractmethod
         def wrap_socket(self,
                         socket: socket.socket,
                         server_hostname: Optional[str]) -> TLSWrappedSocket:
@@ -503,6 +518,8 @@ The ``Context`` abstract base class has the following class definition::
             has no default value because opting-out of hostname validation is
             dangerous, and should not be the default behaviour.
             """
+            buffer = self.wrap_buffers(server_hostname)
+            return TLSWrappedSocket(socket, buffer)
 
         @abstractmethod
         def wrap_buffers(self, server_hostname: Optional[str]) -> TLSWrappedBuffer:
@@ -523,7 +540,6 @@ The ``Context`` abstract base class has the following class definition::
 
 
     class ServerContext(_BaseContext):
-        @abstractmethod
         def wrap_socket(self, socket: socket.socket) -> TLSWrappedSocket:
             """
             Wrap an existing Python socket object ``socket`` and return a
@@ -538,6 +554,8 @@ The ``Context`` abstract base class has the following class definition::
             been wrapped in TLS, see the ``unwrap`` method of the
             TLSWrappedSocket.
             """
+            buffer = self.wrap_buffers()
+            return TLSWrappedSocket(socket, buffer)
 
         @abstractmethod
         def wrap_buffers(self) -> TLSWrappedBuffer:
@@ -551,75 +569,6 @@ The ``Context`` abstract base class has the following class definition::
             the individual TLS implementation. This allows TLS libraries that
             have their own specialised support to continue to do so, while
             allowing those without to use whatever Python objects they see fit.
-            """
-
-
-Socket
-~~~~~~
-
-The socket-wrapper ABC will be defined by the ``TLSWrappedSocket`` ABC, which
-has the following definition::
-
-    class TLSWrappedSocket(metaclass=ABCMeta):
-        # The various socket methods all must be implemented. Their definitions
-        # have been elided from this class definition in the PEP because they
-        # aren't instructive.
-        @abstractmethod
-        def do_handshake(self) -> None:
-            """
-            Performs the TLS handshake. Also performs certificate validation
-            and hostname verification. This must be called after the socket has
-            connected (either via ``connect`` or ``accept``), before any other
-            operation is performed on the socket.
-            """
-
-        @abstractmethod
-        def cipher(self) -> Optional[Union[CipherSuite, int]]:
-            """
-            Returns the CipherSuite entry for the cipher that has been
-            negotiated on the connection. If no connection has been negotiated,
-            returns ``None``. If the cipher negotiated is not defined in
-            CipherSuite, returns the 16-bit integer representing that cipher
-            directly.
-            """
-
-        @abstractmethod
-        def negotiated_protocol(self) -> Optional[Union[NextProtocol, bytes]]:
-            """
-            Returns the protocol that was selected during the TLS handshake.
-            This selection may have been made using ALPN, NPN, or some future
-            negotiation mechanism.
-
-            If the negotiated protocol is one of the protocols defined in the
-            ``NextProtocol`` enum, the value from that enum will be returned.
-            Otherwise, the raw bytestring of the negotiated protocol will be
-            returned.
-
-            If ``Context.set_inner_protocols()`` was not called, if the other
-            party does not support protocol negotiation, if this socket does
-            not support any of the peer's proposed protocols, or if the
-            handshake has not happened yet, ``None`` is returned.
-            """
-
-        @property
-        @abstractmethod
-        def context(self) -> Context:
-            """
-            The ``Context`` object this socket is tied to.
-            """
-
-        @abstractproperty
-        def negotiated_tls_version(self) -> Optional[TLSVersion]:
-            """
-            The version of TLS that has been negotiated on this connection.
-            """
-
-        @abstractmethod
-        def unwrap(self) -> socket.socket:
-            """
-            Cleanly terminate the TLS connection on this wrapped socket. Once
-            called, this ``TLSWrappedSocket`` can no longer be used to transmit
-            data. Returns the socket that was wrapped with TLS.
             """
 
 
@@ -740,7 +689,7 @@ has the following definition::
         @abstractmethod
         def context(self) -> Context:
             """
-            The ``Context`` object this socket is tied to.
+            The ``Context`` object this buffer is tied to.
             """
 
         @abstractproperty
@@ -779,6 +728,77 @@ has the following definition::
             should be used when ``amt`` bytes have been sent on the network, to
             signal that the data no longer needs to be buffered.
             """
+
+
+Socket
+~~~~~~
+
+The socket-wrapper class will be a concrete class that accepts two items in its
+constructor: a regular socket object, and a ``TLSWrappedBuffer`` object. This
+object will be too large to recreate in this PEP, but will be submitted as part
+of the work to build the module.
+
+The wrapped socket will implement all of the socket API, though it will have
+stub implementations of methods that only work for sockets with types other
+than ``SOCK_STREAM`` (e.g. ``sendto``/``recvfrom``). That limitation can be
+lifted as-and-when support for DTLS is added to this module.
+
+In addition, the socket class will include the following *extra* methods on top
+of the regular socket methods::
+
+    class TLSWrappedSocket:
+        def do_handshake(self) -> None:
+            """
+            Performs the TLS handshake. Also performs certificate validation
+            and hostname verification. This must be called after the socket has
+            connected (either via ``connect`` or ``accept``), before any other
+            operation is performed on the socket.
+            """
+
+        def cipher(self) -> Optional[Union[CipherSuite, int]]:
+            """
+            Returns the CipherSuite entry for the cipher that has been
+            negotiated on the connection. If no connection has been negotiated,
+            returns ``None``. If the cipher negotiated is not defined in
+            CipherSuite, returns the 16-bit integer representing that cipher
+            directly.
+            """
+
+        def negotiated_protocol(self) -> Optional[Union[NextProtocol, bytes]]:
+            """
+            Returns the protocol that was selected during the TLS handshake.
+            This selection may have been made using ALPN, NPN, or some future
+            negotiation mechanism.
+
+            If the negotiated protocol is one of the protocols defined in the
+            ``NextProtocol`` enum, the value from that enum will be returned.
+            Otherwise, the raw bytestring of the negotiated protocol will be
+            returned.
+
+            If ``Context.set_inner_protocols()`` was not called, if the other
+            party does not support protocol negotiation, if this socket does
+            not support any of the peer's proposed protocols, or if the
+            handshake has not happened yet, ``None`` is returned.
+            """
+
+        @property
+        def context(self) -> Context:
+            """
+            The ``Context`` object this socket is tied to.
+            """
+
+        def negotiated_tls_version(self) -> Optional[TLSVersion]:
+            """
+            The version of TLS that has been negotiated on this connection.
+            """
+
+        def unwrap(self) -> socket.socket:
+            """
+            Cleanly terminate the TLS connection on this wrapped socket. Once
+            called, this ``TLSWrappedSocket`` can no longer be used to transmit
+            data. Returns the socket that was wrapped with TLS.
+            """
+
 
 
 Cipher Suites
@@ -1494,6 +1514,8 @@ References
 .. _tlsdb JSON file: https://github.com/tiran/tlsdb/blob/master/tlsdb.json
 .. _IANA cipher suite registry: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4
 .. _an email sent to the Security-SIG by Christian Heimes: https://mail.python.org/pipermail/security-sig/2017-January/000213.html
+.. _s2n: https://github.com/awslabs/s2n
+.. _working to add it: https://github.com/awslabs/s2n/issues/358
 
 
 Copyright
