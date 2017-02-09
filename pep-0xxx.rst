@@ -551,9 +551,6 @@ The ``Context`` abstract base class has the following class definition::
             the individual TLS implementation. This allows TLS libraries that
             have their own specialised support to continue to do so, while
             allowing those without to use whatever Python objects they see fit.
-
-            The buffer objects must be either file objects or objects that
-            implement the buffer protocol.
             """
 
 
