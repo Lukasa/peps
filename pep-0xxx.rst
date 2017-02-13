@@ -1,15 +1,15 @@
 PEP: XXX
-Title: TLS Abstract Base Classes
+Title: A Unified TLS API for Python
 Version: $Revision$
 Last-Modified: $Date$
-Author: Cory Benfield <cory@lukasa.co.uk>
-    Christian Heimes <christian@python.org>
+Author: Cory Benfield <cory@lukasa.co.uk>,
+        Christian Heimes <christian@python.org>
 Status: Draft
 Type: Standards Track
 Content-Type: text/x-rst
 Created: 17-Oct-2016
 Python-Version: 3.7
-Post-History: 30-Aug-2002
+Post-History: 11-Jan-2017, 19-Jan-2017, 02-Feb-2017, 09-Feb-2017
 
 
 Abstract
