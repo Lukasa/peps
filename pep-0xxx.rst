@@ -1122,8 +1122,16 @@ enum member ``TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384`` as having the value
 enum. This makes mapping between SecureTransport and the above enum very easy
 indeed.
 
+For SChannel there is no easy direct mapping, due to the fact that SChannel
+configures ciphers, instead of cipher suites. This represents an ongoing
+concern with SChannel, which is that it is very difficult to configure in a
+specific manner compared to other TLS implementations.
 
-.. TODO: Figure out mappings for SChannel
+For the purposes of this PEP, any SChannel implementation will need to
+determine which ciphers to choose based on the enum members. This may be more
+open than the actual cipher suite list actually wants to allow, or it may be
+more restrictive, depending on the choices of the implementation. This PEP
+recommends that it be more restrictive, but of course this cannot be enforced.
 
 
 Protocol Negotiation
